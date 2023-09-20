@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer-deployment
+  namespace: crud
+  labels:
+    app: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      containers:
+        - name: producer
+          image: producer-image:latest
+          command: ["python", "producer.py"]
+          volumeMounts:
+            - name: redpanda-ca-cert-volume
+              mountPath: /app/ca.crt # matching with the script's path
+              subPath: ca.crt # ensures only ca.crt is mounted, not the entire directory
+          imagePullPolicy: Never # So it doesn't try to pull from dockerhub
+          env:
+            - name: BROKERS
+              value: "redpanda-0.redpanda.crud.svc.cluster.local.:9093,redpanda-1.redpanda.crud.svc.cluster.local.:9093,redpanda-2.redpanda.crud.svc.cluster.local.:9093"
+      volumes:
+        - name: redpanda-ca-cert-volume
+          secret:
+            secretName: redpanda-ca-cert
